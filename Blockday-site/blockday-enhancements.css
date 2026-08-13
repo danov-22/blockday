@@ -1,0 +1,50 @@
+.top-actions { position: relative; }
+
+.more-menu {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 30;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: hsl(var(--background));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .14);
+}
+
+.more-menu a,
+.more-menu button {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.more-menu a:hover,
+.more-menu button:hover { background: hsl(var(--secondary)); }
+.setting-section[hidden], .button[hidden] { display: none !important; }
+.enhancement-panel { min-height: 180px; }
+
+@media (max-width: 700px) {
+  [data-testid="calendar-month-view"] {
+    overflow-x: auto !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-testid="calendar-month-view"] .month-grid {
+    min-width: 680px;
+  }
+
+  .calendar-toolbar,
+  .date-nav { flex-wrap: wrap; }
+}
