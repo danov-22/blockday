@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
+    { "source": "/", "destination": "/Blockday-site/index.html" },
     { "source": "/assets/:path*", "destination": "/Blockday-site/assets/:path*" },
     { "source": "/blockday-sync.js", "destination": "/Blockday-site/blockday-sync.js" },
     { "source": "/blockday-sync.css", "destination": "/Blockday-site/blockday-sync.css" },
