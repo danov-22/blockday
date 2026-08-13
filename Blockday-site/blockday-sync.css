@@ -1,0 +1,27 @@
+.sync-panel {
+  margin: -8px 0 22px;
+  padding: 14px 16px;
+  border: 1px solid hsl(var(--border));
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  background: hsl(var(--secondary) / .45);
+}
+
+.sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.sync-status,
+.sync-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: hsl(var(--muted-foreground));
+}
+
+.sync-status:empty { display: none; }
+.sync-status.success { color: hsl(var(--primary)); }
+.sync-status.error { color: hsl(var(--destructive, 0 70% 48%)); }
+.sync-note { opacity: .85; }
