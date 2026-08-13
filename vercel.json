@@ -5,6 +5,8 @@
     { "source": "/assets/:path*", "destination": "/Blockday-site/assets/:path*" },
     { "source": "/blockday-sync.js", "destination": "/Blockday-site/blockday-sync.js" },
     { "source": "/blockday-sync.css", "destination": "/Blockday-site/blockday-sync.css" },
+    { "source": "/blockday-enhancements.js", "destination": "/Blockday-site/blockday-enhancements.js" },
+    { "source": "/blockday-enhancements.css", "destination": "/Blockday-site/blockday-enhancements.css" },
     { "source": "/favicon.svg", "destination": "/Blockday-site/favicon.svg" },
     { "source": "/robots.txt", "destination": "/Blockday-site/robots.txt" },
     { "source": "/:path*", "destination": "/Blockday-site/index.html" }
