@@ -24,7 +24,7 @@
     const screen = document.createElement("main");
     screen.id = "blockday-login";
     screen.className = "login-screen";
-    screen.innerHTML = '<section class="login-card"><div class="login-logo">b-d</div><span class="eyebrow">Your time, privately held</span><h1>Welcome to Blockday.</h1><p>Plan locally, keep working offline, and back up to your own Google Sheet when you reconnect.</p><div id="blockday-google-button"></div><p class="login-note"></p></section>';
+    screen.innerHTML = '<section class="login-card"><div class="login-logo"><img src="/favicon.svg" alt="Blockday"></div><span class="eyebrow">Your time, privately held</span><h1>Welcome to Blockday.</h1><p>Plan locally, keep working offline, and back up to your own Google Sheet when you reconnect.</p><div id="blockday-google-button"></div><p class="login-note"></p></section>';
     document.body.appendChild(screen);
     if (!configured) {
       screen.querySelector(".login-note").textContent = "Google login is ready for configuration. Add the OAuth Web Client ID to auth-config.js to activate it.";
