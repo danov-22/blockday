@@ -27,7 +27,7 @@
 
   function userId() {
     try {
-      const account = JSON.parse(sessionStorage.getItem("blockday-auth-user") || "null");
+      const account = JSON.parse(localStorage.getItem("blockday-auth-user") || "null");
       if (account?.sub) return "google-" + account.sub;
     } catch (_) {}
     let id = localStorage.getItem(USER_ID_KEY);
@@ -39,8 +39,10 @@
   }
 
   async function request(body) {
-    const credential = sessionStorage.getItem("blockday-auth-credential");
-    if (credential) body.credential = credential;
+    const credential = localStorage.getItem("blockday-auth-credential");
+    const session = localStorage.getItem("blockday-auth-session");
+    if (session) body.session = session;
+    else if (credential) body.credential = credential;
     const response = await fetch(apiUrl(), {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },

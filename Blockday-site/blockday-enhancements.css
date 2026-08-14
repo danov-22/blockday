@@ -34,6 +34,8 @@
 .setting-section[hidden], .button[hidden] { display: none !important; }
 .enhancement-panel { min-height: 180px; }
 .mobile-brand { display: none; flex: 0 0 34px; text-decoration: none; font-size: 11px; letter-spacing: -1px; }
+.brand-mark { overflow: hidden; padding: 0; }
+.brand-mark img { width: 100%; height: 100%; display: block; }
 .calendar-heading-actions { display: flex; align-items: center; gap: 8px; }
 .hours-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .hours-settings label { display: grid; gap: 7px; color: hsl(var(--muted-foreground)); font-size: 11px; font-weight: 700; }
@@ -46,6 +48,11 @@
 .week-col .mini-block { inset: 7px 5px auto; min-height: 58px; position: absolute; }
 .day-grid, .week-grid { scroll-margin-top: 12px; }
 .insights-empty .streak-list { opacity: .45; }
+.guide-steps { display: grid; gap: 10px; }
+.guide-steps article { padding: 14px; border: 1px solid hsl(var(--border)); border-radius: 11px; background: hsl(var(--secondary) / .35); }
+.guide-steps strong, .guide-steps span { display: block; }
+.guide-steps strong { margin-bottom: 5px; font-size: 12px; }
+.guide-steps span { color: hsl(var(--muted-foreground)); font-size: 11px; line-height: 1.6; }
 
 @media (max-width: 700px) {
   .mobile-brand { display: grid; }

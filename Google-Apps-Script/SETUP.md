@@ -63,6 +63,8 @@ Do not treat a user-entered email address as proof of identity.
 
 Once `OAUTH_CLIENT_ID` is present, Apps Script validates every Google ID token and uses its stable `sub` claim as the Sheet user key. A caller-provided email address or user ID cannot select another account's records.
 
+After validation, Apps Script issues a signed Blockday session lasting 180 days. This lets returning users open the installed app without repeating Google login every time. Signing out removes that device's stored session.
+
 Google login identifies the user; it does not by itself grant access to that user's Google Sheets. Blockday supports either:
 
 - one owner-managed Sheet with securely separated rows per Google account; or

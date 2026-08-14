@@ -3,6 +3,8 @@
   const clientId = String(window.BLOCKDAY_GOOGLE_CLIENT_ID || "").trim();
   const credentialKey = "blockday-auth-credential";
   const userKey = "blockday-auth-user";
+  const sessionKey = "blockday-auth-session";
+  const defaultApiUrl = "https://script.google.com/macros/s/AKfycbxmTmXP1bCWqA25yklg_PESnTh9wQXMqaslyPslwfNtPluRmHaPvrQsIFFeneFcMUoy/exec";
 
   function decodeCredential(credential) {
     const payload = credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -10,11 +12,11 @@
   }
   function currentUser() {
     try {
-      const user = JSON.parse(sessionStorage.getItem(userKey) || "null");
-      if (user?.exp && user.exp * 1000 > Date.now()) return user;
+      const user = JSON.parse(localStorage.getItem(userKey) || "null");
+      if (user?.sub) return user;
     } catch (_) {}
-    sessionStorage.removeItem(credentialKey);
-    sessionStorage.removeItem(userKey);
+    localStorage.removeItem(credentialKey);
+    localStorage.removeItem(userKey);
     return null;
   }
   function loginScreen(configured) {
@@ -26,15 +28,26 @@
     document.body.appendChild(screen);
     if (!configured) {
       screen.querySelector(".login-note").textContent = "Google login is ready for configuration. Add the OAuth Web Client ID to auth-config.js to activate it.";
-      screen.querySelector("#blockday-google-button").innerHTML = '<a class="button" href="/">Continue to Blockday</a>';
+      screen.querySelector("#blockday-google-button").innerHTML = '<button class="button" type="button" data-continue-local>Continue on this device</button>';
+      screen.querySelector("[data-continue-local]").addEventListener("click", () => {
+        localStorage.setItem("blockday-welcome-complete", "true");
+        screen.remove();
+        if (location.pathname === "/login") history.replaceState(null, "", "/");
+      });
     }
   }
-  function handleCredential(response) {
+  async function handleCredential(response) {
     try {
       const user = decodeCredential(response.credential);
       if (user.aud !== clientId || !user.sub) throw new Error("The Google account response was not issued for Blockday.");
-      sessionStorage.setItem(credentialKey, response.credential);
-      sessionStorage.setItem(userKey, JSON.stringify(user));
+      const apiUrl = localStorage.getItem("blockday-sync-url") || defaultApiUrl;
+      const authResponse = await fetch(apiUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "authenticate", credential: response.credential }), redirect: "follow" });
+      const result = await authResponse.json();
+      if (!result.ok || !result.session) throw new Error(result.error || "Blockday could not create a secure session.");
+      localStorage.setItem(credentialKey, response.credential);
+      localStorage.setItem(userKey, JSON.stringify(user));
+      localStorage.setItem(sessionKey, result.session);
+      localStorage.setItem("blockday-welcome-complete", "true");
       location.replace("/");
     } catch (error) {
       const note = document.querySelector(".login-note");
@@ -58,14 +71,17 @@
     button.addEventListener("click", () => {
       if (!confirm("Sign out of Blockday on this device? Your local data will remain here.")) return;
       google?.accounts?.id?.disableAutoSelect();
-      sessionStorage.removeItem(credentialKey);
-      sessionStorage.removeItem(userKey);
+      localStorage.removeItem(credentialKey);
+      localStorage.removeItem(userKey);
+      localStorage.removeItem(sessionKey);
+      localStorage.removeItem("blockday-welcome-complete");
       location.reload();
     });
     actions.prepend(button);
   }
   const user = currentUser();
-  if (location.pathname === "/login" || (clientId && !user)) {
+  const firstVisit = localStorage.getItem("blockday-welcome-complete") !== "true";
+  if (location.pathname === "/login" || firstVisit || (clientId && !user)) {
     loginScreen(Boolean(clientId));
     if (clientId) renderGoogleButton();
   }

@@ -42,6 +42,9 @@ function doGet(e) {
 function doPost(e) {
   try {
     var body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
+    if (body.action === "authenticate") {
+      return jsonOutput_(createSession_(String(body.credential || "")));
+    }
     var userId = resolveUserId_(body);
     if (body.action === "load") {
       return jsonOutput_(loadData_(userId));
@@ -64,8 +67,15 @@ function doPost(e) {
 function resolveUserId_(body) {
   var clientId = PropertiesService.getScriptProperties().getProperty("OAUTH_CLIENT_ID");
   if (!clientId) return String(body.userId || "default");
+  if (body.session) return validateSession_(String(body.session));
   var credential = String(body.credential || "");
   if (!credential) throw new Error("Sign in with Google before syncing.");
+  return "google-" + String(validateGoogleCredential_(credential).sub);
+}
+
+function validateGoogleCredential_(credential) {
+  var clientId = PropertiesService.getScriptProperties().getProperty("OAUTH_CLIENT_ID");
+  if (!clientId) throw new Error("Google login is not configured for this Sheet.");
   var response = UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential), {
     muteHttpExceptions: true
   });
@@ -74,7 +84,35 @@ function resolveUserId_(body) {
   if (String(token.aud) !== String(clientId)) throw new Error("This sign-in was not issued for Blockday.");
   if (!token.sub || Number(token.exp || 0) * 1000 <= Date.now()) throw new Error("The Google sign-in has expired.");
   if (String(token.email_verified) !== "true") throw new Error("Use a verified Google account.");
-  return "google-" + String(token.sub);
+  return token;
+}
+
+function createSession_(credential) {
+  var token = validateGoogleCredential_(credential);
+  var properties = PropertiesService.getScriptProperties();
+  var secret = properties.getProperty("SESSION_SECRET");
+  if (!secret) {
+    secret = Utilities.getUuid() + Utilities.getUuid();
+    properties.setProperty("SESSION_SECRET", secret);
+  }
+  var payload = Utilities.base64EncodeWebSafe(JSON.stringify({
+    sub: String(token.sub),
+    exp: Date.now() + 180 * 24 * 60 * 60 * 1000
+  })).replace(/=+$/, "");
+  return { ok: true, session: payload + "." + signSession_(payload, secret), userId: "google-" + String(token.sub) };
+}
+
+function validateSession_(session) {
+  var parts = session.split(".");
+  var secret = PropertiesService.getScriptProperties().getProperty("SESSION_SECRET");
+  if (parts.length !== 2 || !secret || signSession_(parts[0], secret) !== parts[1]) throw new Error("Your Blockday session is invalid. Sign in again.");
+  var payload = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(parts[0])).getDataAsString());
+  if (!payload.sub || Number(payload.exp || 0) <= Date.now()) throw new Error("Your Blockday session has expired. Sign in again.");
+  return "google-" + String(payload.sub);
+}
+
+function signSession_(payload, secret) {
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(payload, secret)).replace(/=+$/, "");
 }
 
 function setupSheets() {

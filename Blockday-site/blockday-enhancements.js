@@ -188,6 +188,8 @@
           const item = document.createElement("div");
           item.className = "mini-block" + (block.completed ? " done" : "");
           item.textContent = block.title;
+          item.dataset.blockId = block.id;
+          item.dataset.blockDate = block.date;
           cell.appendChild(item);
         });
         grid.appendChild(cell);
@@ -243,6 +245,14 @@
   function applySettingsTab() {
     const found = settingsSections();
     if (!found) return;
+    const menu = found.layout.querySelector(".settings-menu");
+    if (menu && !menu.querySelector('[data-testid="settings-tab-guide"]')) {
+      const guideTab = document.createElement("button");
+      guideTab.className = "settings-tab";
+      guideTab.dataset.testid = "settings-tab-guide";
+      guideTab.textContent = "How to use";
+      menu.appendChild(guideTab);
+    }
     document.querySelectorAll(".settings-tab").forEach(button => button.classList.toggle("active", button.dataset.testid === "settings-tab-" + settingsTab));
     let custom = document.getElementById("blockday-settings-panel");
     found.sections.forEach(section => {
@@ -279,6 +289,17 @@
       custom.innerHTML = '<h2>Routines</h2><p>Recurring time blocks appear here.</p><div class="setting-row"><div class="setting-copy"><strong>' + routines.length + ' active routine' + (routines.length === 1 ? "" : "s") + '</strong><span>Create or edit a calendar block and enable “Repeat this as a routine”.</span></div><a class="button" href="/">Open calendar</a></div>';
       custom.hidden = false;
     } else if (custom) custom.hidden = true;
+    let guide = document.getElementById("blockday-guide-panel");
+    if (settingsTab === "guide") {
+      if (!guide) {
+        guide = document.createElement("section");
+        guide.id = "blockday-guide-panel";
+        guide.className = "setting-section guide-panel";
+        guide.innerHTML = '<h2>How to use Blockday</h2><p>A simple guide for planning your time safely.</p><div class="guide-steps"><article><strong>1. Make a time block</strong><span>Open Calendar, choose a day, then tap “Add block.” Give it a clear name, starting time, and length.</span></article><article><strong>2. Use it during your day</strong><span>Tap a block on a phone—or double-click on a computer—to edit or delete it. Check it when you finish.</span></article><article><strong>3. Your work saves on this device</strong><span>Blockday saves in this browser automatically. It keeps working without internet. Do not clear this browser’s site data unless you have a backup.</span></article><article><strong>4. Back up to Google Sheets</strong><span>Create your own Google Sheet and Apps Script Web App. In Settings → General, paste its URL, tap Connect, then Back up now. Future changes retry automatically when you are online.</span></article><article><strong>5. Restore carefully</strong><span>“Restore from Sheets” replaces the Blockday data on this device. Use it when moving to a new phone or recovering a backup.</span></article><article><strong>Privacy tip</strong><span>Your plans can be personal. Use your own device account, keep your Sheet private, and sign out on shared school or family devices.</span></article></div>';
+        found.content.prepend(guide);
+      }
+      guide.hidden = false;
+    } else if (guide) guide.hidden = true;
   }
 
   function toggleMoreMenu(button) {
@@ -287,20 +308,22 @@
     menu = document.createElement("div");
     menu.id = "blockday-more-menu";
     menu.className = "more-menu";
-    const signedIn = Boolean(sessionStorage.getItem("blockday-auth-user"));
+    const signedIn = Boolean(localStorage.getItem("blockday-auth-user"));
     menu.innerHTML = '<a href="/settings">Settings</a>' + (signedIn ? "" : '<a href="/login">Sign in with Google</a>') + '<button type="button" data-export-blockday>Export local backup</button>';
     button.parentElement.appendChild(menu);
   }
 
   function mountBrand() {
-    document.querySelectorAll(".brand-mark").forEach(mark => { if (mark.textContent !== "b-d") mark.textContent = "b-d"; });
+    document.querySelectorAll(".brand-mark").forEach(mark => {
+      if (!mark.querySelector("img")) mark.innerHTML = '<img src="/favicon.svg" alt="">';
+    });
     const topbar = document.querySelector(".topbar-left");
     if (topbar && !document.getElementById("blockday-mobile-brand")) {
       const mark = document.createElement("a");
       mark.id = "blockday-mobile-brand";
       mark.className = "brand-mark mobile-brand";
       mark.href = "/";
-      mark.textContent = "b-d";
+      mark.innerHTML = '<img src="/favicon.svg" alt="">';
       topbar.prepend(mark);
     }
   }
@@ -389,6 +412,18 @@
   }
 
   document.addEventListener("click", event => {
+    const mobileBlock = event.target.closest(".block");
+    if (mobileBlock && !event.target.closest("button") && matchMedia("(pointer: coarse)").matches) {
+      mobileBlock.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
+      return;
+    }
+    const weekBlock = event.target.closest(".mini-block[data-block-id]");
+    if (weekBlock) {
+      selectedDate = dateFromKey(weekBlock.dataset.blockDate);
+      document.querySelector('[data-testid="button-view-day"]')?.click();
+      setTimeout(() => document.querySelector('[data-testid="block-' + CSS.escape(weekBlock.dataset.blockId) + '"]')?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })), 100);
+      return;
+    }
     const target = event.target.closest("button, [data-export-blockday]");
     if (!target) return;
     if (target.dataset.testid === "button-previous-date") { event.preventDefault(); moveDate(-1); }
