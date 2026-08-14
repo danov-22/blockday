@@ -5,9 +5,40 @@
   let settingsTab = "general";
 
   const dateKey = date => [date.getFullYear(), date.getMonth() + 1, date.getDate()].join("-");
+  const dateFromKey = value => {
+    const parts = String(value || "").split("-").map(Number);
+    return parts.length === 3 && parts.every(Number.isFinite) ? new Date(parts[0], parts[1] - 1, parts[2], 12) : new Date();
+  };
   const sameDay = (a, b) => dateKey(a) === dateKey(b);
   const shortDate = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
   const longDate = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+  function readBlocks() {
+    try { return JSON.parse(localStorage.getItem("blockday-blocks") || "[]"); } catch (_) { return []; }
+  }
+
+  function calendarHours() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("blockday-calendar-hours") || "{}");
+      return { start: Number.isInteger(saved.start) ? saved.start : 5, end: Number.isInteger(saved.end) ? saved.end : 24 };
+    } catch (_) { return { start: 5, end: 24 }; }
+  }
+
+  function hourLabel(hour) {
+    const normalized = hour % 24;
+    if (normalized === 0) return "12 AM";
+    if (normalized === 12) return "12 PM";
+    return (normalized > 12 ? normalized - 12 : normalized) + (normalized > 11 ? " PM" : " AM");
+  }
+
+  function migrateBlockDates() {
+    const blocks = readBlocks();
+    let changed = false;
+    blocks.forEach(block => {
+      if (!block.date) { block.date = dateKey(new Date()); changed = true; }
+    });
+    if (changed) localStorage.setItem("blockday-blocks", JSON.stringify(blocks));
+  }
 
   function activeView() {
     return document.querySelector('[data-testid="calendar-view-switcher"] .active')?.textContent.toLowerCase() || "day";
@@ -34,7 +65,9 @@
     const heading = document.querySelector('[data-testid="button-add-block"]')?.closest(".page-heading")?.querySelector(".eyebrow");
     if (heading && heading.textContent !== longDate.format(selectedDate)) heading.textContent = longDate.format(selectedDate);
     renderMonth();
+    renderDayHours();
     renderWeek();
+    mountCalendarActions();
   }
 
   function renderMonth() {
@@ -47,7 +80,7 @@
     const month = selectedDate.getMonth();
     const mondayOffset = (new Date(year, month, 1).getDay() + 6) % 7;
     const first = new Date(year, month, 1 - mondayOffset);
-    const blocks = (() => { try { return JSON.parse(localStorage.getItem("blockday-blocks") || "[]"); } catch (_) { return []; } })();
+    const blocks = readBlocks();
     grid.innerHTML = "";
     ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].forEach(day => {
       const head = document.createElement("div");
@@ -65,10 +98,11 @@
       number.className = "month-num" + (sameDay(date, new Date()) ? " today" : "");
       number.textContent = date.getDate();
       cell.appendChild(number);
-      if (date.getMonth() === month && blocks.length && date.getDate() % 5 === 0) {
+      const dayBlocks = blocks.filter(block => block.date === dateKey(date));
+      if (date.getMonth() === month && dayBlocks.length) {
         const event = document.createElement("span");
         event.className = "month-event";
-        event.textContent = blocks[date.getDate() % blocks.length]?.title || "Time block";
+        event.textContent = dayBlocks[0]?.title || "Time block";
         cell.appendChild(event);
       }
       cell.addEventListener("click", () => {
@@ -80,22 +114,123 @@
     }
   }
 
+  function renderDayHours() {
+    const grid = document.querySelector('[data-testid="calendar-day-view"] .day-grid');
+    if (!grid) return;
+    const axis = grid.querySelector(".time-axis");
+    const column = grid.querySelector(".day-column");
+    if (!axis || !column) return;
+    const hours = calendarHours();
+    const hourHeight = innerWidth <= 700 ? 78 : 72;
+    const key = hours.start + "-" + hours.end + "-" + hourHeight;
+    if (grid.dataset.hoursKey !== key) {
+      grid.dataset.hoursKey = key;
+      axis.innerHTML = "";
+      for (let hour = hours.start; hour < hours.end; hour += 1) {
+        const label = document.createElement("div");
+        label.className = "time-label";
+        label.textContent = hourLabel(hour);
+        label.style.height = hourHeight + "px";
+        axis.appendChild(label);
+      }
+      grid.style.minHeight = (hours.end - hours.start) * hourHeight + "px";
+      column.style.backgroundSize = "100% " + hourHeight + "px";
+    }
+    const blocks = readBlocks();
+    column.querySelectorAll(".block").forEach(element => {
+      const id = element.dataset.testid?.replace("block-", "");
+      const block = blocks.find(item => String(item.id) === id);
+      if (!block) return;
+      const visible = block.date === dateKey(selectedDate) && block.start < hours.end && block.start + block.duration > hours.start;
+      element.hidden = !visible;
+      if (visible) {
+        element.style.top = Math.max(0, block.start - hours.start) * hourHeight + "px";
+        element.style.height = Math.max(52, Math.min(block.duration, hours.end - block.start) * hourHeight - 8) + "px";
+      }
+    });
+  }
+
   function renderWeek() {
     const view = document.querySelector('[data-testid="calendar-week-view"]');
     if (!view) return;
-    const heads = view.querySelectorAll(".week-head");
-    if (heads.length !== 7) return;
     const monday = new Date(selectedDate);
     monday.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 6) % 7));
-    const key = dateKey(monday);
+    const hours = calendarHours();
+    const key = dateKey(monday) + "-" + hours.start + "-" + hours.end;
     if (view.dataset.calendarKey === key) return;
     view.dataset.calendarKey = key;
-    heads.forEach((head, index) => {
+    const grid = view.querySelector(".week-grid");
+    if (!grid) return;
+    grid.innerHTML = '<div class="week-corner"></div>';
+    const dates = [];
+    for (let index = 0; index < 7; index += 1) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + index);
+      dates.push(date);
+      const head = document.createElement("button");
+      head.type = "button";
+      head.className = "week-head";
       head.classList.toggle("today", sameDay(date, new Date()));
       head.innerHTML = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"][index] + "<strong>" + date.getDate() + "</strong>";
+      head.addEventListener("click", () => { selectedDate = date; document.querySelector('[data-testid="button-view-day"]')?.click(); setTimeout(renderCalendarDate); });
+      grid.appendChild(head);
+    }
+    const blocks = readBlocks();
+    for (let hour = hours.start; hour < hours.end; hour += 1) {
+      const label = document.createElement("div");
+      label.className = "time-label week-time";
+      label.textContent = hourLabel(hour);
+      grid.appendChild(label);
+      dates.forEach(date => {
+        const cell = document.createElement("div");
+        cell.className = "week-col";
+        blocks.filter(block => block.date === dateKey(date) && Math.floor(block.start) === hour).forEach(block => {
+          const item = document.createElement("div");
+          item.className = "mini-block" + (block.completed ? " done" : "");
+          item.textContent = block.title;
+          cell.appendChild(item);
+        });
+        grid.appendChild(cell);
+      });
+    }
+  }
+
+  function mountCalendarActions() {
+    const heading = document.querySelector('[data-testid="button-add-block"]')?.closest(".page-heading");
+    if (!heading || document.getElementById("blockday-reset-schedule")) return;
+    const add = heading.querySelector('[data-testid="button-add-block"]');
+    const actions = document.createElement("div");
+    actions.className = "calendar-heading-actions";
+    actions.innerHTML = '<button class="button ghost" id="blockday-reset-schedule" type="button">Reset schedule</button>';
+    if (add) actions.appendChild(add);
+    heading.appendChild(actions);
+  }
+
+  function showResetDialog() {
+    const dialog = document.createElement("div");
+    dialog.className = "overlay";
+    dialog.id = "blockday-reset-dialog";
+    dialog.innerHTML = '<div class="dialog reset-dialog"><div class="dialog-head"><div><h2>Reset schedule</h2><p>Choose what to clear. This cannot be undone.</p></div><button class="icon-button" data-reset-scope="cancel" aria-label="Close">×</button></div><div class="reset-options"><button class="button" data-reset-scope="day">This day</button><button class="button" data-reset-scope="week">This week</button><button class="button" data-reset-scope="month">This month</button><button class="button danger" data-reset-scope="all">Everything</button></div></div>';
+    document.body.appendChild(dialog);
+  }
+
+  function resetSchedule(scope) {
+    if (scope === "cancel") { document.getElementById("blockday-reset-dialog")?.remove(); return; }
+    if (!confirm("Clear " + (scope === "all" ? "the entire schedule" : "blocks for this " + scope) + "?")) return;
+    const selected = new Date(selectedDate);
+    const monday = new Date(selected);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(selected.getDate() - ((selected.getDay() + 6) % 7));
+    const nextMonday = new Date(monday); nextMonday.setDate(monday.getDate() + 7);
+    const keep = readBlocks().filter(block => {
+      if (scope === "all") return false;
+      const date = dateFromKey(block.date);
+      if (scope === "day") return !sameDay(date, selected);
+      if (scope === "week") return date < monday || date >= nextMonday;
+      return date.getFullYear() !== selected.getFullYear() || date.getMonth() !== selected.getMonth();
     });
+    localStorage.setItem("blockday-blocks", JSON.stringify(keep));
+    location.reload();
   }
 
   function settingsSections() {
@@ -117,6 +252,20 @@
     });
     const save = found.content.querySelector('[data-testid="button-save-settings"]');
     if (save) save.hidden = settingsTab !== "general";
+    let hoursPanel = document.getElementById("blockday-hours-settings");
+    if (!hoursPanel) {
+      const hours = calendarHours();
+      hoursPanel = document.createElement("section");
+      hoursPanel.id = "blockday-hours-settings";
+      hoursPanel.className = "setting-section";
+      hoursPanel.innerHTML = '<h2>Calendar hours</h2><p>Choose the first and last hour shown in day and week views. All 24 hours remain available.</p><div class="hours-settings"><label>Day starts<select class="select" data-hours-start></select></label><label>Day ends<select class="select" data-hours-end></select></label></div>';
+      const start = hoursPanel.querySelector("[data-hours-start]");
+      const end = hoursPanel.querySelector("[data-hours-end]");
+      for (let hour = 0; hour < 24; hour += 1) start.add(new Option(hourLabel(hour), hour, false, hour === hours.start));
+      for (let hour = 1; hour <= 24; hour += 1) end.add(new Option(hour === 24 ? "12 AM (next day)" : hourLabel(hour), hour, false, hour === hours.end));
+      found.content.prepend(hoursPanel);
+    }
+    hoursPanel.hidden = settingsTab !== "general";
     if (settingsTab === "routines") {
       if (!custom) {
         custom = document.createElement("section");
@@ -140,6 +289,39 @@
     menu.className = "more-menu";
     menu.innerHTML = '<a href="/settings">Settings</a><button type="button" data-export-blockday>Export local backup</button>';
     button.parentElement.appendChild(menu);
+  }
+
+  function mountBrand() {
+    document.querySelectorAll(".brand-mark").forEach(mark => { if (mark.textContent !== "b-d") mark.textContent = "b-d"; });
+    const topbar = document.querySelector(".topbar-left");
+    if (topbar && !document.getElementById("blockday-mobile-brand")) {
+      const mark = document.createElement("a");
+      mark.id = "blockday-mobile-brand";
+      mark.className = "brand-mark mobile-brand";
+      mark.href = "/";
+      mark.textContent = "b-d";
+      topbar.prepend(mark);
+    }
+  }
+
+  function dismissThemeToast() {
+    document.querySelectorAll('[data-testid="status-settings-toast"]').forEach(toast => {
+      if (toast.textContent.trim() === "Theme updated") toast.remove();
+    });
+  }
+
+  function stampSavedBlockDate() {
+    const title = document.querySelector('[data-testid="input-block-title"]')?.value;
+    const start = Number(document.querySelector('[data-testid="input-block-start"]')?.value);
+    setTimeout(() => {
+      const blocks = readBlocks();
+      const candidates = blocks.filter(block => block.title === title && Number(block.start) === start);
+      const block = candidates[candidates.length - 1] || blocks[blocks.length - 1];
+      if (block) {
+        block.date = dateKey(selectedDate);
+        localStorage.setItem("blockday-blocks", JSON.stringify(blocks));
+      }
+    }, 100);
   }
 
   function exportLocalData() {
@@ -171,6 +353,20 @@
     if (target.dataset.testid === "button-more") { event.preventDefault(); toggleMoreMenu(target); }
     if (target.hasAttribute("data-export-blockday")) exportLocalData();
     if (target.classList.contains("segment")) setTimeout(renderCalendarDate);
+    if (target.id === "blockday-reset-schedule") showResetDialog();
+    if (target.dataset.resetScope) resetSchedule(target.dataset.resetScope);
+    if (target.dataset.testid === "button-save-block") stampSavedBlockDate();
+  });
+
+  document.addEventListener("change", event => {
+    if (!event.target.matches("[data-hours-start], [data-hours-end]")) return;
+    const start = Number(document.querySelector("[data-hours-start]").value);
+    const end = Number(document.querySelector("[data-hours-end]").value);
+    if (start >= end) {
+      alert("The end of the day must be later than the start.");
+      return;
+    }
+    localStorage.setItem("blockday-calendar-hours", JSON.stringify({ start, end }));
   });
 
   document.addEventListener("click", event => {
@@ -186,8 +382,13 @@
       scheduled = false;
       renderCalendarDate();
       applySettingsTab();
+      mountBrand();
+      dismissThemeToast();
     });
   }).observe(document.documentElement, { childList: true, subtree: true });
+  migrateBlockDates();
   renderCalendarDate();
   applySettingsTab();
+  mountBrand();
+  dismissThemeToast();
 })();

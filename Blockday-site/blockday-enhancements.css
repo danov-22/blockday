@@ -33,8 +33,31 @@
 .more-menu button:hover { background: hsl(var(--secondary)); }
 .setting-section[hidden], .button[hidden] { display: none !important; }
 .enhancement-panel { min-height: 180px; }
+.mobile-brand { display: none; flex: 0 0 34px; text-decoration: none; font-size: 11px; letter-spacing: -1px; }
+.calendar-heading-actions { display: flex; align-items: center; gap: 8px; }
+.hours-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hours-settings label { display: grid; gap: 7px; color: hsl(var(--muted-foreground)); font-size: 11px; font-weight: 700; }
+.reset-dialog p { margin-top: 6px; color: hsl(var(--muted-foreground)); font-size: 12px; }
+.reset-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.week-corner { position: sticky; left: 0; z-index: 3; background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border)); }
+.week-head { border: 0; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--card)); cursor: pointer; }
+.week-time { position: sticky; left: 0; z-index: 2; height: 78px !important; }
+.week-col { min-height: 78px !important; }
+.week-col .mini-block { inset: 7px 5px auto; min-height: 58px; position: absolute; }
+.day-grid, .week-grid { scroll-margin-top: 12px; }
 
 @media (max-width: 700px) {
+  .mobile-brand { display: grid; }
+  .topbar-left { gap: 9px; min-width: 0; }
+  .topbar-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .calendar-heading-actions { margin-top: 16px; flex-wrap: wrap; }
+  .calendar-heading-actions .button { margin-top: 0; }
+  [data-testid="calendar-day-view"],
+  [data-testid="calendar-week-view"] { max-height: 68vh; overflow: auto !important; -webkit-overflow-scrolling: touch; }
+  .week-grid { min-width: 900px; grid-template-columns: 68px repeat(7, 118px) !important; }
+  .block { left: 12px; right: 16px; padding: 11px 12px; border-radius: 12px; }
+  .block-title { padding-right: 26px; font-size: 13px; }
+  .hours-settings, .reset-options { grid-template-columns: 1fr; }
   [data-testid="calendar-month-view"] {
     overflow-x: auto !important;
     overscroll-behavior-inline: contain;
