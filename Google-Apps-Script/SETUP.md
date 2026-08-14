@@ -50,6 +50,26 @@ For a true “Sign in with Google” experience:
 
 Do not treat a user-entered email address as proof of identity.
 
+### Activate Blockday's prepared Google login
+
+1. In Google Cloud Console, configure the OAuth consent screen.
+2. Create an **OAuth client ID** with application type **Web application**.
+3. Add `https://blockday.vercel.app` as an **Authorized JavaScript origin**.
+4. Copy the client ID into `Blockday-site/auth-config.js`.
+5. In Apps Script, open **Project Settings → Script properties** and add:
+   - Property: `OAUTH_CLIENT_ID`
+   - Value: the same OAuth Web client ID
+6. Replace the deployed Apps Script code with the updated `Code.gs`, then create a new deployment version.
+
+Once `OAUTH_CLIENT_ID` is present, Apps Script validates every Google ID token and uses its stable `sub` claim as the Sheet user key. A caller-provided email address or user ID cannot select another account's records.
+
+Google login identifies the user; it does not by itself grant access to that user's Google Sheets. Blockday supports either:
+
+- one owner-managed Sheet with securely separated rows per Google account; or
+- one Sheet per user, where each user copies `Code.gs` into their own Sheet, deploys it, and pastes their `/exec` URL into Blockday Settings.
+
+Directly creating Sheets in every user's Drive would require a separate Google OAuth authorization flow with Sheets/Drive scopes and token management. Keep that separate from the sign-in step.
+
 ## 4. Locked content
 
 The lock feature in a static browser app is a convenience privacy layer, not encryption. It prevents casual viewing while the app is open, but anyone who can inspect the browser profile or the sheet can still access stored data.

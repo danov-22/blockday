@@ -7,6 +7,11 @@
     { "source": "/blockday-sync.css", "destination": "/Blockday-site/blockday-sync.css" },
     { "source": "/blockday-enhancements.js", "destination": "/Blockday-site/blockday-enhancements.js" },
     { "source": "/blockday-enhancements.css", "destination": "/Blockday-site/blockday-enhancements.css" },
+    { "source": "/blockday-auth.js", "destination": "/Blockday-site/blockday-auth.js" },
+    { "source": "/blockday-auth.css", "destination": "/Blockday-site/blockday-auth.css" },
+    { "source": "/auth-config.js", "destination": "/Blockday-site/auth-config.js" },
+    { "source": "/service-worker.js", "destination": "/Blockday-site/service-worker.js" },
+    { "source": "/manifest.webmanifest", "destination": "/Blockday-site/manifest.webmanifest" },
     { "source": "/favicon.svg", "destination": "/Blockday-site/favicon.svg" },
     { "source": "/robots.txt", "destination": "/Blockday-site/robots.txt" },
     { "source": "/:path*", "destination": "/Blockday-site/index.html" }

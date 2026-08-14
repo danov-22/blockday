@@ -287,7 +287,8 @@
     menu = document.createElement("div");
     menu.id = "blockday-more-menu";
     menu.className = "more-menu";
-    menu.innerHTML = '<a href="/settings">Settings</a><button type="button" data-export-blockday>Export local backup</button>';
+    const signedIn = Boolean(sessionStorage.getItem("blockday-auth-user"));
+    menu.innerHTML = '<a href="/settings">Settings</a>' + (signedIn ? "" : '<a href="/login">Sign in with Google</a>') + '<button type="button" data-export-blockday>Export local backup</button>';
     button.parentElement.appendChild(menu);
   }
 
@@ -308,6 +309,45 @@
     document.querySelectorAll('[data-testid="status-settings-toast"]').forEach(toast => {
       if (toast.textContent.trim() === "Theme updated") toast.remove();
     });
+  }
+
+  function renderInsights() {
+    const completionCard = document.querySelector('[data-testid="stat-completion"]');
+    if (!completionCard) return;
+    const blocks = readBlocks();
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const weekDates = Array.from({ length: 7 }, (_, index) => { const date = new Date(monday); date.setDate(monday.getDate() + index); return date; });
+    const weekly = blocks.filter(block => weekDates.some(date => block.date === dateKey(date)));
+    const completed = weekly.filter(block => block.completed);
+    const completion = weekly.length ? Math.round(completed.length / weekly.length * 100) : 0;
+    const focus = completed.reduce((sum, block) => sum + (Number(block.duration) || 0), 0);
+    let streak = 0;
+    const cursor = new Date(now);
+    while (blocks.some(block => block.completed && block.date === dateKey(cursor))) { streak += 1; cursor.setDate(cursor.getDate() - 1); }
+    const setValue = (testid, value) => {
+      const node = document.querySelector('[data-testid="' + testid + '"] .stat-value');
+      if (node && node.textContent !== String(value)) node.textContent = value;
+    };
+    setValue("stat-completion", completion + "%");
+    setValue("stat-streak", streak);
+    setValue("stat-focus", Math.round(focus * 10) / 10);
+    setValue("stat-routines", blocks.filter(block => block.recurring).length);
+    document.querySelectorAll("[data-testid^='bar-day-'] .bar").forEach((bar, index) => {
+      const dayBlocks = blocks.filter(block => block.date === dateKey(weekDates[index]));
+      const value = dayBlocks.length ? Math.round(dayBlocks.filter(block => block.completed).length / dayBlocks.length * 100) : 0;
+      bar.style.height = value + "%";
+    });
+    const range = document.querySelector(".chart-card .eyebrow");
+    if (range) range.textContent = shortDate.format(weekDates[0]) + "–" + shortDate.format(weekDates[6]);
+    document.querySelector(".insights-grid")?.classList.toggle("insights-empty", blocks.length === 0);
+  }
+
+  function fixBrainstormSpacing() {
+    const compose = document.querySelector('[data-testid="input-idea-compose"]');
+    compose?.closest(".page")?.classList.add("brainstorm-page");
   }
 
   function stampSavedBlockDate() {
@@ -384,6 +424,8 @@
       applySettingsTab();
       mountBrand();
       dismissThemeToast();
+      renderInsights();
+      fixBrainstormSpacing();
     });
   }).observe(document.documentElement, { childList: true, subtree: true });
   migrateBlockDates();
@@ -391,4 +433,6 @@
   applySettingsTab();
   mountBrand();
   dismissThemeToast();
+  renderInsights();
+  fixBrainstormSpacing();
 })();

@@ -42,7 +42,7 @@ function doGet(e) {
 function doPost(e) {
   try {
     var body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
-    var userId = String(body.userId || "default");
+    var userId = resolveUserId_(body);
     if (body.action === "load") {
       return jsonOutput_(loadData_(userId));
     }
@@ -53,6 +53,28 @@ function doPost(e) {
   } catch (error) {
     return jsonOutput_({ ok: false, error: String(error.message || error) });
   }
+}
+
+/**
+ * When the OAUTH_CLIENT_ID script property is configured, every load/save
+ * request must carry a current Google ID token. The stable Google `sub` claim
+ * becomes the storage key, so callers cannot select another user's rows.
+ * Leave the property empty while using the original single-user deployment.
+ */
+function resolveUserId_(body) {
+  var clientId = PropertiesService.getScriptProperties().getProperty("OAUTH_CLIENT_ID");
+  if (!clientId) return String(body.userId || "default");
+  var credential = String(body.credential || "");
+  if (!credential) throw new Error("Sign in with Google before syncing.");
+  var response = UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential), {
+    muteHttpExceptions: true
+  });
+  if (response.getResponseCode() !== 200) throw new Error("The Google sign-in has expired. Sign in again.");
+  var token = JSON.parse(response.getContentText());
+  if (String(token.aud) !== String(clientId)) throw new Error("This sign-in was not issued for Blockday.");
+  if (!token.sub || Number(token.exp || 0) * 1000 <= Date.now()) throw new Error("The Google sign-in has expired.");
+  if (String(token.email_verified) !== "true") throw new Error("Use a verified Google account.");
+  return "google-" + String(token.sub);
 }
 
 function setupSheets() {

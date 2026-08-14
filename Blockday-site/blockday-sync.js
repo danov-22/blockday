@@ -5,6 +5,12 @@
   const USER_ID_KEY = "blockday-sync-user-id";
   const CONNECTED_KEY = "blockday-appscript";
   const LAST_SYNC_KEY = "blockday-last-sync";
+  const PENDING_KEY = "blockday-sync-pending";
+  let autoSyncing = false;
+
+  function apiUrl() {
+    return localStorage.getItem("blockday-sync-url") || API_URL;
+  }
 
   function read(key, fallback) {
     try {
@@ -20,6 +26,10 @@
   }
 
   function userId() {
+    try {
+      const account = JSON.parse(sessionStorage.getItem("blockday-auth-user") || "null");
+      if (account?.sub) return "google-" + account.sub;
+    } catch (_) {}
     let id = localStorage.getItem(USER_ID_KEY);
     if (!id) {
       id = (crypto.randomUUID ? crypto.randomUUID() : "user-" + Date.now() + "-" + Math.random().toString(36).slice(2));
@@ -29,7 +39,9 @@
   }
 
   async function request(body) {
-    const response = await fetch(API_URL, {
+    const credential = sessionStorage.getItem("blockday-auth-credential");
+    if (credential) body.credential = credential;
+    const response = await fetch(apiUrl(), {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(body),
@@ -88,7 +100,7 @@
     setBusy(true);
     showStatus("Checking the connection…");
     try {
-      const response = await fetch(API_URL + "?action=health", { redirect: "follow" });
+      const response = await fetch(apiUrl() + "?action=health", { redirect: "follow" });
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error(result.error || "Health check failed.");
       write(CONNECTED_KEY, true);
@@ -112,11 +124,27 @@
     try {
       const result = await request({ action: "save", userId: userId(), data: localData() });
       localStorage.setItem(LAST_SYNC_KEY, result.savedAt || new Date().toISOString());
+      localStorage.removeItem(PENDING_KEY);
       showStatus("Backup complete at " + new Date(result.savedAt || Date.now()).toLocaleString() + ".", "success");
     } catch (error) {
       showStatus("Backup failed: " + error.message, "error");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function flushPendingSync() {
+    if (autoSyncing || !navigator.onLine || read(CONNECTED_KEY, false) !== true || localStorage.getItem(PENDING_KEY) !== "true") return;
+    autoSyncing = true;
+    try {
+      const result = await request({ action: "save", userId: userId(), data: localData() });
+      localStorage.setItem(LAST_SYNC_KEY, result.savedAt || new Date().toISOString());
+      localStorage.removeItem(PENDING_KEY);
+      showStatus("Saved locally and backed up to Sheets.", "success");
+    } catch (error) {
+      showStatus("Saved locally. Cloud backup will retry when online.");
+    } finally {
+      autoSyncing = false;
     }
   }
 
@@ -155,17 +183,18 @@
     if (copy && copy.textContent !== copyText) copy.textContent = copyText;
 
     let panel = document.getElementById("blockday-sync-panel");
-    if (!connected) {
-      if (panel) panel.remove();
-      return;
-    }
     if (!panel) {
       panel = document.createElement("div");
       panel.id = "blockday-sync-panel";
       panel.className = "sync-panel";
-      panel.innerHTML = '<div class="sync-actions"><button class="button primary" data-sync-action="backup">Back up this device</button><button class="button" data-sync-action="restore">Restore from Sheets</button></div><p class="sync-status" data-sync-status></p><p class="sync-note">Each browser profile has its own private sync ID. Keep using this browser profile to access the same backup.</p>';
+      panel.innerHTML = '<label class="sync-url-label">Your Apps Script URL<input class="input" data-sync-url type="url" placeholder="https://script.google.com/macros/s/…/exec"></label><div class="sync-actions" data-sync-actions></div><p class="sync-status" data-sync-status></p><p class="sync-note">Data always saves on this device first. Connected changes back up automatically when internet returns.</p>';
       row.insertAdjacentElement("afterend", panel);
     }
+    const urlInput = panel.querySelector("[data-sync-url]");
+    if (urlInput && document.activeElement !== urlInput) urlInput.value = apiUrl();
+    const actions = panel.querySelector("[data-sync-actions]");
+    const actionMarkup = connected ? '<button class="button primary" data-sync-action="backup">Back up now</button><button class="button" data-sync-action="restore">Restore from Sheets</button>' : "";
+    if (actions.innerHTML !== actionMarkup) actions.innerHTML = actionMarkup;
     const lastSync = localStorage.getItem(LAST_SYNC_KEY);
     if (lastSync) showStatus("Last sync: " + new Date(lastSync).toLocaleString() + ".");
   }
@@ -183,6 +212,30 @@
     if (action === "restore") restore();
   }, true);
 
+  document.addEventListener("change", function (event) {
+    if (!event.target.matches("[data-sync-url]")) return;
+    const value = event.target.value.trim();
+    if (value && !/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(value)) {
+      showStatus("Use the Apps Script Web App URL ending in /exec.", "error");
+      return;
+    }
+    if (value) localStorage.setItem("blockday-sync-url", value);
+    else localStorage.removeItem("blockday-sync-url");
+    showStatus("Sync URL saved on this device.", "success");
+  });
+
   new MutationObserver(mountPanel).observe(document.documentElement, { childList: true, subtree: true });
+  let lastSignature = JSON.stringify(localData());
+  setInterval(() => {
+    const signature = JSON.stringify(localData());
+    if (signature !== lastSignature) {
+      lastSignature = signature;
+      localStorage.setItem(PENDING_KEY, "true");
+      showStatus(navigator.onLine ? "Saved locally. Backing up…" : "Saved locally. Waiting for internet…");
+    }
+    flushPendingSync();
+  }, 4000);
+  addEventListener("online", flushPendingSync);
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/service-worker.js").catch(() => {});
   mountPanel();
 })();

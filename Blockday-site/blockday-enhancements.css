@@ -45,6 +45,7 @@
 .week-col { min-height: 78px !important; }
 .week-col .mini-block { inset: 7px 5px auto; min-height: 58px; position: absolute; }
 .day-grid, .week-grid { scroll-margin-top: 12px; }
+.insights-empty .streak-list { opacity: .45; }
 
 @media (max-width: 700px) {
   .mobile-brand { display: grid; }
@@ -58,6 +59,8 @@
   .block { left: 12px; right: 16px; padding: 11px 12px; border-radius: 12px; }
   .block-title { padding-right: 26px; font-size: 13px; }
   .hours-settings, .reset-options { grid-template-columns: 1fr; }
+  .brainstorm-page { padding-top: 13px; }
+  .brainstorm-page .page-heading { margin-bottom: 17px; }
   [data-testid="calendar-month-view"] {
     overflow-x: auto !important;
     overscroll-behavior-inline: contain;
