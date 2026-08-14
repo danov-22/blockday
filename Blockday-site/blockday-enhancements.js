@@ -342,6 +342,15 @@
     });
     const range = document.querySelector(".chart-card .eyebrow");
     if (range) range.textContent = shortDate.format(weekDates[0]) + "–" + shortDate.format(weekDates[6]);
+    const notes = document.querySelector(".streak-list");
+    if (notes) {
+      const busiest = weekDates.map(date => ({ date, hours: blocks.filter(block => block.completed && block.date === dateKey(date)).reduce((sum, block) => sum + (Number(block.duration) || 0), 0) })).sort((a, b) => b.hours - a.hours)[0];
+      const routines = blocks.filter(block => block.recurring).length;
+      const markup = blocks.length
+        ? '<div class="streak-row"><strong>' + streak + '-day streak</strong><span>current momentum</span></div><div class="streak-row"><strong>' + (busiest.hours ? longDate.format(busiest.date) : "No focus blocks yet") + '</strong><span>' + (busiest.hours ? busiest.hours + " focused hours" : "this week") + '</span></div><div class="streak-row"><strong>' + routines + ' routine' + (routines === 1 ? "" : "s") + '</strong><span>in your schedule</span></div>'
+        : '<div class="empty insights-note-empty"><strong>No schedule data yet.</strong><span>Add a block and complete it to begin seeing patterns.</span></div>';
+      if (notes.innerHTML !== markup) notes.innerHTML = markup;
+    }
     document.querySelector(".insights-grid")?.classList.toggle("insights-empty", blocks.length === 0);
   }
 
