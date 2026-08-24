@@ -1,8 +1,9 @@
-const CACHE = "blockday-v10";
+const CACHE = "blockday-v11";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/favicon.svg",
+  "/logo-mask.svg",
   "/manifest.webmanifest",
   "/assets/index-zx5AaXri.js",
   "/assets/index-DcYDiIl0.css",

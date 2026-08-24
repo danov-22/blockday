@@ -19,9 +19,11 @@
     const user = read("blockday-auth-user", {}), saved = profile(), section = document.createElement("section");
     section.id = "blockday-profile-settings"; section.className = "setting-section";
     section.innerHTML = '<h2>Your Blockday</h2><p>Choose the identity and color shown in your planner and shared schedule.</p><div class="profile-grid"><label>Display name<input class="input" data-profile-name maxlength="40" value="' + esc(saved.name || user.name || "") + '"></label><label>Planner title<input class="input" data-profile-title maxlength="60" value="' + esc(saved.title || "My Blockday") + '"></label></div><div class="palette-picker">' + themes.map(theme => '<button type="button" class="palette ' + theme + '" data-palette="' + theme + '" aria-label="Use ' + theme + ' theme"></button>').join("") + '</div><div class="profile-actions"><button class="button primary" type="button" data-save-profile>Save identity</button><button class="button" type="button" data-switch-account>Switch Google account</button><button class="button ghost danger" type="button" data-sign-out>Sign out</button></div>';
+    if (new URLSearchParams(location.search).has("demo")) section.querySelectorAll("[data-switch-account],[data-sign-out]").forEach(button => button.remove());
     content.prepend(section);
   }
   function mountShareButton() {
+    if (new URLSearchParams(location.search).has("demo")) return;
     const actions = document.querySelector(".calendar-heading-actions");
     if (!actions || actions.querySelector("[data-share-schedule]")) return;
     const button = document.createElement("button"); button.type = "button"; button.className = "button"; button.dataset.shareSchedule = ""; button.textContent = "Share schedule"; actions.prepend(button);
@@ -75,6 +77,21 @@
     if (start && start.step !== step) { start.step = step; start.closest(".field").querySelector("label").textContent = "Starts at (5-minute precision)"; }
     if (duration && duration.step !== step) { duration.step = step; duration.min = step; duration.closest(".field").querySelector("label").textContent = "Duration (5-minute precision)"; }
   }
+  function mountTopbar() {
+    const left = document.querySelector(".topbar-left"), actions = document.querySelector(".top-actions");
+    if (!left || !actions) return;
+    if (!document.getElementById("blockday-top-logo")) {
+      const logo = document.createElement("a"); logo.id = "blockday-top-logo"; logo.className = "theme-logo"; logo.href = "/"; logo.setAttribute("aria-label", "Blockday home"); left.prepend(logo);
+    }
+    if (!document.getElementById("blockday-clock")) {
+      const clock = document.createElement("time"); clock.id = "blockday-clock"; clock.className = "device-clock"; actions.prepend(clock);
+      const tick = () => { clock.dateTime = new Date().toISOString(); clock.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); };
+      tick(); setInterval(tick, 1000);
+    }
+    if (new URLSearchParams(location.search).has("demo") && !document.getElementById("blockday-exit-demo")) {
+      const exit = document.createElement("button"); exit.id = "blockday-exit-demo"; exit.className = "button demo-exit"; exit.type = "button"; exit.textContent = "← Exit demo"; exit.addEventListener("click", () => window.BlockdayDemo?.exit()); actions.prepend(exit);
+    }
+  }
   document.addEventListener("click", event => {
     if (event.target.closest("[data-share-schedule]")) shareDialog();
     if (event.target.closest("[data-close-share]")) document.getElementById("blockday-share-dialog")?.remove();
@@ -84,5 +101,5 @@
     if (event.target.closest("[data-sign-out]")) window.BlockdayAuth?.signOut(); if (event.target.closest("[data-switch-account]")) window.BlockdayAuth?.switchAccount();
   });
   const token = new URLSearchParams(location.search).get("share"); if (token) { renderPublicSchedule(token); return; }
-  new MutationObserver(() => { applyIdentity(); mountProfileSettings(); mountShareButton(); improveMinuteInputs(); }).observe(document.documentElement, { childList: true, subtree: true }); applyIdentity();
+  new MutationObserver(() => { applyIdentity(); mountProfileSettings(); mountShareButton(); improveMinuteInputs(); mountTopbar(); }).observe(document.documentElement, { childList: true, subtree: true }); applyIdentity(); mountTopbar();
 })();

@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  if (new URLSearchParams(location.search).has("demo")) return;
 
   const API_URL = "https://script.google.com/macros/s/AKfycbxmTmXP1bCWqA25yklg_PESnTh9wQXMqaslyPslwfNtPluRmHaPvrQsIFFeneFcMUoy/exec";
   const USER_ID_KEY = "blockday-sync-user-id";

@@ -15,6 +15,7 @@
     { "source": "/service-worker.js", "destination": "/Blockday-site/service-worker.js" },
     { "source": "/manifest.webmanifest", "destination": "/Blockday-site/manifest.webmanifest" },
     { "source": "/favicon.svg", "destination": "/Blockday-site/favicon.svg" },
+    { "source": "/logo-mask.svg", "destination": "/Blockday-site/logo-mask.svg" },
     { "source": "/robots.txt", "destination": "/Blockday-site/robots.txt" },
     { "source": "/:path*", "destination": "/Blockday-site/index.html" }
   ]
