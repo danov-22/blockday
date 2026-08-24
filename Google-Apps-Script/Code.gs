@@ -21,7 +21,7 @@
  * layer before enabling public access.
  */
 
-var SHEET_NAMES = ["Blocks", "Ideas", "DailyNotes", "Routines", "Settings"];
+var SHEET_NAMES = ["Blocks", "Ideas", "DailyNotes", "Routines", "Settings", "PublicSchedules"];
 var MAX_CELL_LENGTH = 45000;
 
 function doGet(e) {
@@ -35,6 +35,9 @@ function doGet(e) {
   }
   if (action === "load") {
     return jsonOutput_(loadData_(String((e.parameter && e.parameter.userId) || "default")));
+  }
+  if (action === "public") {
+    return jsonOutput_(loadPublicSchedule_(String((e.parameter && e.parameter.token) || "")));
   }
   return jsonOutput_({ ok: false, error: "Unknown action." });
 }
@@ -51,6 +54,12 @@ function doPost(e) {
     }
     if (body.action === "save") {
       return jsonOutput_(saveData_(userId, body.data || {}));
+    }
+    if (body.action === "publish") {
+      return jsonOutput_(publishSchedule_(userId, body.data || {}));
+    }
+    if (body.action === "unpublish") {
+      return jsonOutput_(unpublishSchedule_(userId, String(body.token || "")));
     }
     return jsonOutput_({ ok: false, error: "Use action 'load' or 'save'." });
   } catch (error) {
@@ -142,6 +151,41 @@ function saveData_(userId, data) {
   writeRows_(sheets.Routines, userId, data.routines || []);
   writeRows_(sheets.Settings, userId, data.settings || []);
   return { ok: true, userId: userId, savedAt: new Date().toISOString() };
+}
+
+function publishSchedule_(userId, data) {
+  var sheet = getOrCreateSheets_().PublicSchedules;
+  deleteUserRows_(sheet, userId, "");
+  var token = Utilities.getUuid().replace(/-/g, "") + Utilities.getUuid().replace(/-/g, "");
+  var safeData = { profile: data.profile || {}, blocks: Array.isArray(data.blocks) ? data.blocks : [], dailyNotes: Array.isArray(data.dailyNotes) ? data.dailyNotes : [] };
+  var payload = JSON.stringify(safeData);
+  if (payload.length > MAX_CELL_LENGTH) throw new Error("This schedule is too large to share. Share fewer notes or blocks.");
+  sheet.appendRow([userId, token, payload, new Date().toISOString()]);
+  return { ok: true, token: token };
+}
+
+function loadPublicSchedule_(token) {
+  if (!/^[a-f0-9]{64}$/i.test(token)) return { ok: false, error: "This shared link is invalid." };
+  var values = getOrCreateSheets_().PublicSchedules.getDataRange().getValues();
+  for (var index = 1; index < values.length; index++) {
+    if (String(values[index][1]) === token) {
+      try { return { ok: true, data: JSON.parse(String(values[index][2])) }; }
+      catch (error) { return { ok: false, error: "This shared schedule could not be read." }; }
+    }
+  }
+  return { ok: false, error: "This shared link was disabled or does not exist." };
+}
+
+function unpublishSchedule_(userId, token) {
+  deleteUserRows_(getOrCreateSheets_().PublicSchedules, userId, token);
+  return { ok: true };
+}
+
+function deleteUserRows_(sheet, userId, token) {
+  var values = sheet.getDataRange().getValues();
+  for (var rowIndex = values.length - 1; rowIndex >= 1; rowIndex--) {
+    if (String(values[rowIndex][0]) === userId && (!token || String(values[rowIndex][1]) === token)) sheet.deleteRow(rowIndex + 1);
+  }
 }
 
 function getOrCreateSheets_() {

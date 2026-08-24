@@ -9,6 +9,8 @@
     { "source": "/blockday-enhancements.css", "destination": "/Blockday-site/blockday-enhancements.css" },
     { "source": "/blockday-auth.js", "destination": "/Blockday-site/blockday-auth.js" },
     { "source": "/blockday-auth.css", "destination": "/Blockday-site/blockday-auth.css" },
+    { "source": "/blockday-product.js", "destination": "/Blockday-site/blockday-product.js" },
+    { "source": "/blockday-product.css", "destination": "/Blockday-site/blockday-product.css" },
     { "source": "/auth-config.js", "destination": "/Blockday-site/auth-config.js" },
     { "source": "/service-worker.js", "destination": "/Blockday-site/service-worker.js" },
     { "source": "/manifest.webmanifest", "destination": "/Blockday-site/manifest.webmanifest" },

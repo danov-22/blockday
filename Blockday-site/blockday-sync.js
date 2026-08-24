@@ -66,7 +66,8 @@
         theme: read("blockday-theme", "light"),
         reminders: read("blockday-reminders", true),
         locked: read("blockday-locked", true),
-        calendarHours: read("blockday-calendar-hours", { start: 5, end: 24 })
+        calendarHours: read("blockday-calendar-hours", { start: 5, end: 24 }),
+        profile: read("blockday-profile", {})
       }]
     };
   }
@@ -82,6 +83,7 @@
       if (typeof settings.reminders === "boolean") write("blockday-reminders", settings.reminders);
       if (typeof settings.locked === "boolean") write("blockday-locked", settings.locked);
       if (settings.calendarHours) write("blockday-calendar-hours", settings.calendarHours);
+      if (settings.profile) write("blockday-profile", settings.profile);
     }
   }
 
