@@ -35,10 +35,13 @@
     const screen = document.createElement("main");
     screen.id = "blockday-login";
     screen.className = "login-screen";
-    screen.innerHTML = '<div class="landing-shell"><nav class="landing-nav"><a class="landing-brand" href="/"><img src="/favicon.svg" alt="">Blockday</a><a href="#pricing">Price</a></nav><section class="landing-hero"><div><span class="eyebrow">Your day, in your hands</span><h1>Make time feel like yours again.</h1><p>A private planner for precise time blocks, personal themes, and schedules you share only when you choose.</p><div id="blockday-google-button"></div><p class="login-note"></p></div><div class="demo-window" aria-label="Blockday demo"><div class="demo-top"><i></i><span>Jamie’s Blockday</span><b>Tuesday</b></div><div class="demo-grid"><time>9:00</time><article class="demo-block a"><strong>Deep work</strong><span>9:10–10:25</span></article><time>11:00</time><article class="demo-block b"><strong>Walk + reset</strong><span>11:35–12:05</span></article><time>1:00</time><article class="demo-block c"><strong>Build the next thing</strong><span>1:15–2:40</span></article></div></div></section><section class="landing-features"><article><b>5-minute precision</b><span>Plan real life, not just whole hours.</span></article><article><b>Private by default</b><span>Each Google account gets its own schedule.</span></article><article><b>Made personally yours</b><span>Name, identity, and dedicated color themes.</span></article><article><b>Share selectively</b><span>Publish a read-only link, then disable it anytime.</span></article></section><section class="landing-price" id="pricing"><span class="eyebrow">Simple ownership</span><h2>One purchase. Free updates.</h2><p>No tiers and no subscription. Launch target: <strong>Rp50.000</strong> (final payment setup can follow).</p></section><footer class="landing-footer">© Blockday · Calm planning, privately held.</footer></div>';
+    screen.innerHTML = '<div class="landing-shell"><nav class="landing-nav"><a class="landing-brand" href="/"><img src="/favicon.svg" alt="">Blockday</a><a href="#demo">Demo</a><a href="#pricing">Price</a><a class="button" href="/login">Sign in</a></nav><section class="landing-hero"><div><span class="eyebrow">Your day, in your hands</span><h1>Make time feel like yours again.</h1><p>A private planner for precise time blocks, personal themes, and schedules you share only when you choose.</p><div class="landing-actions"><div id="blockday-google-button"></div><button class="button" type="button" data-open-demo>Try the demo app</button></div><p class="login-note"></p></div><div class="demo-window" id="demo" aria-label="Blockday demo"><div class="demo-top"><i></i><span>Jamie’s Blockday</span><b>Tuesday</b></div><div class="demo-grid"><time>9:00</time><article class="demo-block a"><strong>Deep work</strong><span>9:10–10:25</span></article><time>11:00</time><article class="demo-block b"><strong>Walk + reset</strong><span>11:35–12:05</span></article><time>1:00</time><article class="demo-block c"><strong>Build the next thing</strong><span>1:15–2:40</span></article></div></div></section><section class="landing-features"><article><b>5-minute precision</b><span>Plan real life, not just whole hours.</span></article><article><b>Private by default</b><span>Each Google account gets its own schedule.</span></article><article><b>Made personally yours</b><span>Name, identity, and dedicated color themes.</span></article><article><b>Share selectively</b><span>Publish a read-only link, then disable it anytime.</span></article></section><section class="landing-price" id="pricing"><span class="eyebrow">Simple ownership</span><h2>One purchase. Free updates.</h2><p>No tiers and no subscription. Launch target: <strong>Rp50.000</strong> (final payment setup can follow).</p></section><footer class="landing-footer">© Blockday · Calm planning, privately held.</footer></div>';
     document.body.appendChild(screen);
+    screen.querySelector("[data-open-demo]").addEventListener("click", () => { history.replaceState(null, "", "/?demo=1"); screen.remove(); });
     if (!configured) {
       screen.querySelector(".login-note").textContent = "Google sign-in needs its OAuth Client ID before launch. Add it in auth-config.js.";
+      screen.querySelector("#blockday-google-button").innerHTML = '<button class="button primary" type="button" data-google-not-ready>Sign in / Register with Google</button>';
+      screen.querySelector("[data-google-not-ready]").addEventListener("click", () => { screen.querySelector(".login-note").textContent = "Google sign-in is not active yet. Add the OAuth Client ID in auth-config.js to enable registration."; });
     }
   }
   async function handleCredential(response) {
@@ -54,7 +57,7 @@
       localStorage.setItem(userKey, JSON.stringify(user));
       localStorage.setItem(sessionKey, result.session);
       localStorage.setItem("blockday-welcome-complete", "true");
-      location.replace("/");
+      location.replace("/?app=1");
     } catch (error) {
       const note = document.querySelector(".login-note");
       if (note) note.textContent = error.message;
@@ -82,7 +85,7 @@
   function signOut() {
     if (!confirm("Sign out of Blockday on this device? Your local data will remain here.")) return;
     switchWorkspace(""); google?.accounts?.id?.disableAutoSelect();
-    localStorage.removeItem(credentialKey); localStorage.removeItem(userKey); localStorage.removeItem(sessionKey); localStorage.removeItem("blockday-welcome-complete"); location.reload();
+    localStorage.removeItem(credentialKey); localStorage.removeItem(userKey); localStorage.removeItem(sessionKey); localStorage.removeItem("blockday-welcome-complete"); location.href = "/";
   }
   function switchAccount() {
     switchWorkspace(""); google?.accounts?.id?.disableAutoSelect();
@@ -90,10 +93,14 @@
   }
   window.BlockdayAuth = { signOut, switchAccount, currentUser };
   const user = currentUser();
-  const firstVisit = localStorage.getItem("blockday-welcome-complete") !== "true";
-  if (!new URLSearchParams(location.search).has("share") && (location.pathname === "/login" || firstVisit || !user)) {
+  const params = new URLSearchParams(location.search);
+  const publicLanding = !params.has("share") && !params.has("app") && !params.has("demo");
+  if (!params.has("share") && (location.pathname === "/login" || publicLanding || (!user && !params.has("demo")))) {
     loginScreen(Boolean(clientId));
-    if (clientId) renderGoogleButton();
+    if (user && location.pathname !== "/login") {
+      document.getElementById("blockday-google-button").innerHTML = '<a class="button primary" href="/?app=1">Open my Blockday</a>';
+      document.querySelector(".login-note").textContent = "Signed in as " + (user.email || user.name || "your Google account") + ".";
+    } else if (clientId) renderGoogleButton();
   }
   if (user) {
     new MutationObserver(() => mountAccount(user)).observe(document.documentElement, { childList: true, subtree: true });

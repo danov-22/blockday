@@ -1,4 +1,4 @@
-const CACHE = "blockday-v9";
+const CACHE = "blockday-v10";
 const APP_SHELL = [
   "/",
   "/index.html",
