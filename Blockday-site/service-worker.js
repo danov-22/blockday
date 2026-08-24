@@ -1,4 +1,4 @@
-const CACHE = "blockday-v8";
+const CACHE = "blockday-v9";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -12,6 +12,8 @@ const APP_SHELL = [
   "/blockday-enhancements.css",
   "/blockday-auth.js",
   "/blockday-auth.css",
+  "/blockday-product.js",
+  "/blockday-product.css",
   "/auth-config.js"
 ];
 
