@@ -40,7 +40,8 @@
     Object.keys(backup).forEach(key => localStorage.setItem(key, backup[key]));
     localStorage.removeItem(demoBackupKey);
   }
-  function enterDemo() {
+  function prepareDemo() {
+    if (localStorage.getItem(demoBackupKey)) return;
     const backup = {}; demoKeys.forEach(key => { const value = localStorage.getItem(key); if (value !== null) backup[key] = value; });
     localStorage.setItem(demoBackupKey, JSON.stringify(backup));
     demoKeys.forEach(key => localStorage.removeItem(key));
@@ -51,7 +52,11 @@
       { id: "demo-3", title: "Build the next thing", start: 13.25, duration: 1 + 25 / 60, date: key, color: "blue", completed: false }
     ]));
     localStorage.setItem("blockday-profile", JSON.stringify({ name: "Jamie", title: "Jamie’s Blockday", theme: "sage" }));
+    localStorage.setItem("blockday-calendar-hours", JSON.stringify({ start: 7, end: 18 }));
     localStorage.setItem("blockday-appscript", "false");
+  }
+  function enterDemo() {
+    prepareDemo();
     location.href = "/?demo=1";
   }
   window.BlockdayDemo = { enter: enterDemo, exit: function () { restoreDemo(); location.href = "/"; } };
@@ -118,6 +123,7 @@
   }
   window.BlockdayAuth = { signOut, switchAccount, currentUser };
   const params = new URLSearchParams(location.search);
+  if (params.has("demo")) prepareDemo();
   if (!params.has("demo") && localStorage.getItem(demoBackupKey)) restoreDemo();
   const user = currentUser();
   const publicLanding = !params.has("share") && !params.has("app") && !params.has("demo");
