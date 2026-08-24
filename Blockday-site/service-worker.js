@@ -1,4 +1,4 @@
-const CACHE = "blockday-v12";
+const CACHE = "blockday-v13";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -37,7 +37,10 @@ self.addEventListener("fetch", event => {
     return;
   }
   event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
-    if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
+    if (response.ok) {
+      const cacheCopy = response.clone();
+      event.waitUntil(caches.open(CACHE).then(cache => cache.put(event.request, cacheCopy)));
+    }
     return response;
   })));
 });
