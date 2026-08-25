@@ -11,7 +11,8 @@
     const saved = profile();
     document.documentElement.dataset.palette = themes.includes(saved.theme) ? saved.theme : "sage";
     const heading = document.querySelector('[data-testid="button-add-block"]')?.closest(".page-heading")?.querySelector("h1");
-    if (heading && saved.name) heading.textContent = saved.name + "’s day";
+    const personalizedHeading = saved.name ? saved.name + "’s day" : "";
+    if (heading && personalizedHeading && heading.textContent !== personalizedHeading) heading.textContent = personalizedHeading;
   }
   function mountProfileSettings() {
     const content = document.querySelector(".settings-layout > div");
