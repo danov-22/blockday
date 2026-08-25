@@ -18,6 +18,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then(registrations => registrations.forEach(registration => registration.unregister()));
+      if ("caches" in window) caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("blockday-")).map(key => caches.delete(key))));
+    </script>
     <script type="module" crossorigin src="assets/index-zx5AaXri.js"></script>
     <script src="https://accounts.google.com/gsi/client" async></script>
     <script defer src="auth-config.js"></script>

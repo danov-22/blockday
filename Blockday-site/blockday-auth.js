@@ -7,7 +7,7 @@
   const privateKeys = ["blockday-blocks", "blockday-ideas", "blockday-daily-notes", "blockday-routines", "blockday-profile", "blockday-share"];
   const demoKeys = privateKeys.concat(["blockday-theme", "blockday-reminders", "blockday-locked", "blockday-calendar-hours", "blockday-appscript", "blockday-sync-pending"]);
   const demoBackupKey = "blockday-demo-backup";
-  const defaultApiUrl = "https://script.google.com/macros/s/AKfycbxmTmXP1bCWqA25yklg_PESnTh9wQXMqaslyPslwfNtPluRmHaPvrQsIFFeneFcMUoy/exec";
+  const defaultApiUrl = "https://script.google.com/macros/s/AKfycbyMPgUg0MQlPtHMNBZYAks0_x1VZ2HXb7_iX873gcpg9Vee2LjRIacJHs-ua33OATXH/exec";
 
   function decodeCredential(credential) {
     const payload = credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");

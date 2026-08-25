@@ -2,7 +2,7 @@
   "use strict";
   if (new URLSearchParams(location.search).has("demo")) return;
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbxmTmXP1bCWqA25yklg_PESnTh9wQXMqaslyPslwfNtPluRmHaPvrQsIFFeneFcMUoy/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbyMPgUg0MQlPtHMNBZYAks0_x1VZ2HXb7_iX873gcpg9Vee2LjRIacJHs-ua33OATXH/exec";
   const USER_ID_KEY = "blockday-sync-user-id";
   const CONNECTED_KEY = "blockday-appscript";
   const LAST_SYNC_KEY = "blockday-last-sync";
@@ -241,6 +241,5 @@
     flushPendingSync();
   }, 4000);
   addEventListener("online", flushPendingSync);
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/service-worker.js").catch(() => {});
   mountPanel();
 })();
