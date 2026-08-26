@@ -98,6 +98,47 @@
       const exit = document.createElement("button"); exit.id = "blockday-exit-demo"; exit.className = "button demo-exit"; exit.type = "button"; exit.textContent = "← Exit demo"; exit.addEventListener("click", () => window.BlockdayDemo?.exit()); actions.prepend(exit);
     }
   }
+  function mountGlobalQuickNote() {
+    if (document.getElementById("blockday-global-note")) return;
+    const button = document.createElement("button");
+    button.id = "blockday-global-note";
+    button.className = "global-float-note";
+    button.type = "button";
+    button.setAttribute("aria-label", "Capture a quick note. Drag to move.");
+    button.title = "Quick note · drag to move";
+    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>';
+    document.body.appendChild(button);
+    let saved = read("blockday-quick-note-position", null);
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), Math.max(min, max));
+    const place = (x, y) => {
+      const size = button.offsetWidth || 52, margin = 10;
+      button.style.left = clamp(x, margin, innerWidth - size - margin) + "px";
+      button.style.top = clamp(y, margin, innerHeight - size - margin) + "px";
+    };
+    requestAnimationFrame(() => place(saved?.x ?? innerWidth - 76, saved?.y ?? innerHeight - (innerWidth <= 680 ? 142 : 80)));
+    let drag = null, moved = false;
+    button.addEventListener("pointerdown", event => {
+      drag = { pointerId: event.pointerId, dx: event.clientX - button.offsetLeft, dy: event.clientY - button.offsetTop, startX: event.clientX, startY: event.clientY };
+      moved = false; button.setPointerCapture(event.pointerId); button.classList.add("dragging"); event.preventDefault();
+    });
+    button.addEventListener("pointermove", event => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 4) moved = true;
+      place(event.clientX - drag.dx, event.clientY - drag.dy);
+    });
+    const finish = event => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      button.classList.remove("dragging");
+      localStorage.setItem("blockday-quick-note-position", JSON.stringify({ x: button.offsetLeft, y: button.offsetTop }));
+      drag = null;
+    };
+    button.addEventListener("pointerup", finish); button.addEventListener("pointercancel", finish);
+    button.addEventListener("click", event => {
+      if (moved) { event.preventDefault(); moved = false; return; }
+      document.querySelector('[data-testid="button-top-quick-note"]')?.click();
+    });
+    addEventListener("resize", () => place(button.offsetLeft, button.offsetTop));
+  }
   document.addEventListener("click", event => {
     if (event.target.closest("[data-share-schedule]")) shareDialog();
     if (event.target.closest("[data-close-share]")) document.getElementById("blockday-share-dialog")?.remove();
@@ -112,5 +153,5 @@
     if (event.target.closest("[data-sign-out]")) window.BlockdayAuth?.signOut(); if (event.target.closest("[data-switch-account]")) window.BlockdayAuth?.switchAccount();
   });
   const token = new URLSearchParams(location.search).get("share"); if (token) { renderPublicSchedule(token); return; }
-  new MutationObserver(() => { applyIdentity(); mountProfileSettings(); mountShareButton(); improveMinuteInputs(); mountTopbar(); hideTechnicalConnections(); }).observe(document.documentElement, { childList: true, subtree: true }); applyIdentity(); mountTopbar(); hideTechnicalConnections();
+  new MutationObserver(() => { applyIdentity(); mountProfileSettings(); mountShareButton(); improveMinuteInputs(); mountTopbar(); hideTechnicalConnections(); mountGlobalQuickNote(); }).observe(document.documentElement, { childList: true, subtree: true }); applyIdentity(); mountTopbar(); hideTechnicalConnections(); mountGlobalQuickNote();
 })();
