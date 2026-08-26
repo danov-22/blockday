@@ -13,4 +13,5 @@
 .landing-actions #blockday-google-button { margin-top:0; }
 .landing-actions .button { min-height:42px; }
 .landing-nav > .button { padding:8px 14px; }
+.landing-register { display:inline-flex; margin-top:22px; padding:12px 20px; text-decoration:none; }
 @media (max-width:800px){.landing-hero{grid-template-columns:1fr;gap:35px;padding-top:35px}.landing-features{grid-template-columns:1fr 1fr}.demo-window{transform:none}}@media (max-width:520px){.landing-shell{width:min(100% - 24px,1180px)}.landing-nav>a:not(.landing-brand):not(.button){display:none}.landing-hero{padding-bottom:50px}.landing-features{grid-template-columns:1fr}.landing-feature-section{padding:65px 0}.landing-price{padding:65px 16px}.login-card{padding:31px 20px}}
