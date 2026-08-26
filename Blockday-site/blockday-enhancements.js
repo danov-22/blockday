@@ -31,6 +31,17 @@
     return (normalized > 12 ? normalized - 12 : normalized) + (normalized > 11 ? " PM" : " AM");
   }
 
+  function preciseTimeLabel(value) {
+    const totalMinutes = Math.round(Number(value) * 60);
+    const hour = Math.floor(totalMinutes / 60) % 24;
+    const minute = totalMinutes % 60;
+    return new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  function durationLabel(value) {
+    return String(Math.round((Number(value) || 0) * 100) / 100) + "h";
+  }
+
   function migrateBlockDates() {
     const blocks = readBlocks();
     let changed = false;
@@ -146,6 +157,9 @@
       if (visible) {
         element.style.top = Math.max(0, block.start - hours.start) * hourHeight + "px";
         element.style.height = Math.max(52, Math.min(block.duration, hours.end - block.start) * hourHeight - 8) + "px";
+        const meta = element.querySelector(".block-meta");
+        const metaText = preciseTimeLabel(block.start) + " · " + durationLabel(block.duration) + (block.recurring ? " · routine" : "");
+        if (meta && meta.textContent !== metaText) meta.textContent = metaText;
       }
     });
   }

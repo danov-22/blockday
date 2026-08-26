@@ -8,6 +8,7 @@
   const LAST_SYNC_KEY = "blockday-last-sync";
   const PENDING_KEY = "blockday-sync-pending";
   let autoSyncing = false;
+  if (localStorage.getItem("blockday-auth-session") && localStorage.getItem(CONNECTED_KEY) === null) write(CONNECTED_KEY, true);
 
   function apiUrl() {
     return localStorage.getItem("blockday-sync-url") || API_URL;

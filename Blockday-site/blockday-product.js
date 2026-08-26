@@ -29,6 +29,11 @@
     if (!actions || actions.querySelector("[data-share-schedule]")) return;
     const button = document.createElement("button"); button.type = "button"; button.className = "button"; button.dataset.shareSchedule = ""; button.textContent = "Share schedule"; actions.prepend(button);
   }
+  function hideTechnicalConnections() {
+    const button = document.querySelector('[data-testid="button-connect-appscript"]');
+    const section = button?.closest(".setting-section");
+    if (section) section.hidden = true;
+  }
   function shareDialog() {
     document.getElementById("blockday-share-dialog")?.remove();
     const saved = read("blockday-share", {}), dialog = document.createElement("div");
@@ -97,10 +102,15 @@
     if (event.target.closest("[data-share-schedule]")) shareDialog();
     if (event.target.closest("[data-close-share]")) document.getElementById("blockday-share-dialog")?.remove();
     if (event.target.closest("[data-publish-share]")) publishShare(); if (event.target.closest("[data-unpublish-share]")) unpublishShare();
-    const palette = event.target.closest("[data-palette]"); if (palette) document.documentElement.dataset.palette = palette.dataset.palette;
+    const palette = event.target.closest("[data-palette]");
+    if (palette) {
+      const selectedTheme = palette.dataset.palette;
+      document.documentElement.dataset.palette = selectedTheme;
+      localStorage.setItem("blockday-profile", JSON.stringify({ ...profile(), theme: selectedTheme }));
+    }
     if (event.target.closest("[data-save-profile]")) { localStorage.setItem("blockday-profile", JSON.stringify({ name: document.querySelector("[data-profile-name]").value.trim(), title: document.querySelector("[data-profile-title]").value.trim(), theme: document.documentElement.dataset.palette || "sage" })); applyIdentity(); }
     if (event.target.closest("[data-sign-out]")) window.BlockdayAuth?.signOut(); if (event.target.closest("[data-switch-account]")) window.BlockdayAuth?.switchAccount();
   });
   const token = new URLSearchParams(location.search).get("share"); if (token) { renderPublicSchedule(token); return; }
-  new MutationObserver(() => { applyIdentity(); mountProfileSettings(); mountShareButton(); improveMinuteInputs(); mountTopbar(); }).observe(document.documentElement, { childList: true, subtree: true }); applyIdentity(); mountTopbar();
+  new MutationObserver(() => { applyIdentity(); mountProfileSettings(); mountShareButton(); improveMinuteInputs(); mountTopbar(); hideTechnicalConnections(); }).observe(document.documentElement, { childList: true, subtree: true }); applyIdentity(); mountTopbar(); hideTechnicalConnections();
 })();
